@@ -12,17 +12,30 @@
 
   // ---- ChatGPT adapter ----
   // ChatGPT marks each turn with data-message-author-role="user"/"assistant".
-  // This attribute has been stable across ChatGPT UI redesigns, so it's the
-  // most reliable hook available without an official API.
+  // Also supports fallback to article elements and turns.
   function extractChatGPT() {
-    const nodes = document.querySelectorAll('[data-message-author-role]');
+    let nodes = document.querySelectorAll('[data-message-author-role]');
+    if (!nodes || nodes.length === 0) {
+      nodes = document.querySelectorAll('article');
+    }
     const messages = [];
     nodes.forEach((node) => {
-      const role = node.getAttribute('data-message-author-role');
+      let role = node.getAttribute('data-message-author-role');
+      if (!role) {
+        if (
+          node.querySelector('[data-message-author-role="user"]') ||
+          (node.textContent && node.textContent.includes('You said:')) ||
+          node.querySelector('[data-testid*="user"]')
+        ) {
+          role = 'user';
+        } else {
+          role = 'assistant';
+        }
+      }
       const text = textOf(node);
       if (text) messages.push({ role: role === 'user' ? 'user' : 'assistant', text });
     });
-    return messages;
+    return messages.length ? messages : extractGeneric();
   }
 
   // ---- Claude.ai adapter ----

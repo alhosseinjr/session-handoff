@@ -39,6 +39,36 @@ async function getActiveTab() {
   return tab;
 }
 
+function sendCaptureMessage(tabId, callback) {
+  chrome.tabs.sendMessage(tabId, { type: 'CAPTURE_SESSION' }, (response) => {
+    if (chrome.runtime.lastError) {
+      // Content script may not be injected into this pre-existing tab. Inject dynamically.
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tabId },
+          files: ['content/content.js'],
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            callback(null, new Error(chrome.runtime.lastError.message));
+            return;
+          }
+          // Retry sending message after script injection
+          chrome.tabs.sendMessage(tabId, { type: 'CAPTURE_SESSION' }, (retryResponse) => {
+            if (chrome.runtime.lastError) {
+              callback(null, new Error(chrome.runtime.lastError.message));
+            } else {
+              callback(retryResponse, null);
+            }
+          });
+        }
+      );
+    } else {
+      callback(response, null);
+    }
+  });
+}
+
 captureBtn.addEventListener('click', async () => {
   captureStatus.textContent = 'Capturing…';
   output.value = '';
@@ -46,10 +76,10 @@ captureBtn.addEventListener('click', async () => {
     const tab = await getActiveTab();
     if (!tab || !tab.id) throw new Error('No active tab found.');
 
-    chrome.tabs.sendMessage(tab.id, { type: 'CAPTURE_SESSION' }, (response) => {
-      if (chrome.runtime.lastError) {
+    sendCaptureMessage(tab.id, (response, err) => {
+      if (err) {
         captureStatus.textContent =
-          'Could not read this page (unsupported site or not loaded yet). Try the manual paste option below.';
+          'Could not read this page. Please refresh the ChatGPT tab (F5) or use manual paste below.';
         return;
       }
       if (!response || !response.ok) {
@@ -59,7 +89,7 @@ captureBtn.addEventListener('click', async () => {
       }
       if (!response.messages || !response.messages.length) {
         captureStatus.textContent =
-          'No messages found on this page. Try scrolling to load more of the chat, or paste manually.';
+          'No messages found on this page. Try scrolling or paste manually.';
         return;
       }
       lastMeta = { sourceSite: new URL(tab.url).hostname, sourceUrl: tab.url };
@@ -89,7 +119,6 @@ generateFromPasteBtn.addEventListener('click', () => {
   const raw = pasteInput.value.trim();
   if (!raw) return;
   // Rough split: blank-line-separated paragraphs, alternating user/assistant.
-  // Good enough as a seed — the output is meant to be reviewed and edited.
   const paragraphs = raw.split(/\n{2,}/).filter((p) => p.trim().length > 0);
   const messages = paragraphs.map((p, i) => ({
     role: i % 2 === 0 ? 'user' : 'assistant',
