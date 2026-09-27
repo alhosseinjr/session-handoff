@@ -14,8 +14,25 @@ const generateFromPasteBtn = document.getElementById('generateFromPasteBtn');
 const selectionRow = document.getElementById('selectionRow');
 const useSelectionBtn = document.getElementById('useSelectionBtn');
 const dismissSelectionBtn = document.getElementById('dismissSelectionBtn');
+const modeBadge = document.getElementById('modeBadge');
+const settingsBtn = document.getElementById('settingsBtn');
 
 let lastMeta = {};
+let groqApiKey = null;
+
+chrome.storage.local.get(['groqApiKey'], (result) => {
+  if (result.groqApiKey) {
+    groqApiKey = result.groqApiKey;
+    modeBadge.textContent = 'Smart Mode (Groq)';
+    modeBadge.style.backgroundColor = '#10b981';
+  }
+});
+
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+  });
+}
 
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -46,9 +63,22 @@ captureBtn.addEventListener('click', async () => {
         return;
       }
       lastMeta = { sourceSite: new URL(tab.url).hostname, sourceUrl: tab.url };
-      output.value = Templater.build(response.messages, lastMeta);
-      titleInput.value = tab.title ? tab.title.slice(0, 60) : '';
-      captureStatus.textContent = `Captured ${response.messages.length} messages.`;
+      
+      if (groqApiKey) {
+        captureStatus.textContent = `Summarizing ${response.messages.length} messages with AI...`;
+        const rawTranscript = response.messages.map(m => `${m.role.toUpperCase()}:\n${m.text}`).join('\n\n');
+        generateSmartHandoff(rawTranscript, groqApiKey).then(summary => {
+          output.value = `_Captured from ${lastMeta.sourceSite}_\n\n${summary}`;
+          titleInput.value = tab.title ? tab.title.slice(0, 60) : '';
+          captureStatus.textContent = `Smart summary generated!`;
+        }).catch(err => {
+          captureStatus.textContent = 'AI Error: ' + err.message;
+        });
+      } else {
+        output.value = Templater.build(response.messages, lastMeta);
+        titleInput.value = tab.title ? tab.title.slice(0, 60) : '';
+        captureStatus.textContent = `Captured ${response.messages.length} messages (Fast Mode).`;
+      }
     });
   } catch (err) {
     captureStatus.textContent = 'Error: ' + err.message;
@@ -66,8 +96,19 @@ generateFromPasteBtn.addEventListener('click', () => {
     text: p.trim(),
   }));
   lastMeta = { sourceSite: 'manual paste', sourceUrl: '' };
-  output.value = Templater.build(messages, lastMeta);
-  captureStatus.textContent = `Generated from ${messages.length} pasted blocks.`;
+  
+  if (groqApiKey) {
+    captureStatus.textContent = `Summarizing pasted text with AI...`;
+    generateSmartHandoff(raw, groqApiKey).then(summary => {
+      output.value = `_Generated from pasted text_\n\n${summary}`;
+      captureStatus.textContent = `Smart summary generated!`;
+    }).catch(err => {
+      captureStatus.textContent = 'AI Error: ' + err.message;
+    });
+  } else {
+    output.value = Templater.build(messages, lastMeta);
+    captureStatus.textContent = `Generated from ${messages.length} pasted blocks (Fast Mode).`;
+  }
 });
 
 copyBtn.addEventListener('click', async () => {

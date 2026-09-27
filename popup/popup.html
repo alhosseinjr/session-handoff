@@ -7,9 +7,12 @@
 </head>
 <body>
   <div class="app">
-    <header>
-      <h1>Session Handoff</h1>
-      <span class="badge">local only</span>
+    <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div>
+        <h1 style="margin:0;">Session Handoff</h1>
+        <span class="badge" id="modeBadge">Fast Mode (Local)</span>
+      </div>
+      <button id="settingsBtn" class="ghost" title="Settings">⚙️ Settings</button>
     </header>
 
     <section class="capture-row">
@@ -49,6 +52,7 @@
 
   <script src="../lib/storage.js"></script>
   <script src="../lib/templater.js"></script>
+  <script src="../lib/llm.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

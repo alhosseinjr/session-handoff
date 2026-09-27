@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Session Handoff",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Capture the state of a long AI chat session and generate a handoff prompt to continue it in a new chat, tab, or model — 100% local, nothing leaves your browser.",
   "permissions": ["storage", "activeTab", "scripting", "contextMenus", "clipboardWrite"],
   "host_permissions": [
@@ -9,6 +9,7 @@
     "https://chatgpt.com/*",
     "https://chat.openai.com/*"
   ],
+  "options_page": "options/options.html",
   "background": {
     "service_worker": "background/service-worker.js"
   },
