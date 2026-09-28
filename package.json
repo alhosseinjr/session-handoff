@@ -1,0 +1,40 @@
+{
+  "name": "session-handoff",
+  "version": "1.0.0",
+  "description": "The definitive AI chat session handoff tool for Chrome, Firefox, and Edge. Capture, summarize, organize, and continue your AI conversations seamlessly.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build && vite build -c vite.content.config.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\""
+  },
+  "keywords": [
+    "chrome-extension",
+    "ai",
+    "chatgpt",
+    "claude",
+    "gemini",
+    "perplexity",
+    "llm",
+    "context-handoff",
+    "session-management"
+  ],
+  "author": "alhosseinjr",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.308",
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vite-plugin-static-copy": "^2.3.0",
+    "vitest": "^3.0.7"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}

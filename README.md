@@ -1,99 +1,96 @@
-# Session Handoff (v0.1 prototype)
+<div align="center">
+  <img src="icons/icon128.png" alt="Session Handoff Logo" width="128" height="128" />
+  <h1>Session Handoff</h1>
+  <p><strong>Capture, summarize, and continue your AI chat sessions flawlessly.</strong></p>
+  <p>The definitive browser extension to move context between ChatGPT, Claude, Gemini, and more.</p>
+  
+  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+  [![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-blue.svg)](https://www.typescriptlang.org/)
+</div>
 
-A free, local-only browser extension that captures a Claude.ai / ChatGPT
-conversation and turns it into a structured "handoff brief" you can paste
-into a new chat, tab, or model so it can continue exactly where the last one
-left off — without you re-explaining the whole project.
+<br/>
 
-No API keys. No server. No cost. Everything runs in your browser and is
-stored in `chrome.storage.local` on your machine only.
+Have you ever hit a context limit in an AI chat, or wanted to move a long debugging session from ChatGPT to Claude? **Session Handoff** makes it effortless. It captures your entire conversation, synthesizes a smart "handoff brief," and injects it into a new chat so the AI knows exactly where you left off.
 
-## What v1 does
+## ✨ Features
 
-- Injects a content script on `claude.ai`, `chatgpt.com`, and `chat.openai.com`.
-- On click of "Capture current tab" in the popup, reads the visible
-  conversation from the page DOM.
-- Runs it through a **rule-based** (no LLM) template that produces:
-  project summary, current objective, completed work, code blocks found,
-  known issues, constraints, rejected approaches, next action, and open
-  questions.
-- Shows the result in an editable textarea.
-- Copy to clipboard, or save as a named snapshot you can reload later.
-- Right-click → "Send selection to Session Handoff" as a fallback if a
-  site's layout changes and the automatic extraction breaks.
-- Manual paste-and-generate option, for any site not directly supported.
+- **🤖 Multi-Model Intelligence**: Uses Groq, OpenAI, Anthropic, or Gemini to summarize massive chats intelligently.
+- **🔄 Virtualization-Aware Capture**: Auto-scrolls and captures hidden messages in long, virtualized DOMs.
+- **🧩 Universal Site Support**: Works natively on ChatGPT, Claude, Google Gemini, Perplexity, Poe, and Copilot.
+- **💾 Local-First & Private**: Everything is stored in your browser's local storage. API keys are AES-GCM encrypted.
+- **💻 Code-Aware**: Preserves file structures, exact code blocks, and stack traces with high fidelity.
+- **⚡ Auto-Inject UI**: Floats a pill in empty chats to instantly load your last snapshot.
+- **📊 Context Limit Warnings**: Shows a visual badge when your current session is approaching token limits.
 
-## What v1 deliberately does NOT do (by design, see the plan we discussed)
+## 🚀 Installation
 
-- No LLM-assisted summarization (keeps it free and private — this is the
-  natural v2 addition once you've used the rule-based version and can see
-  where it falls short).
-- No automatic "paste into new chat" injection (chat inputs are usually
-  rich-text `contenteditable` elements, not plain `<textarea>`s, which makes
-  reliable auto-insert fragile — copy-paste is the robust v1 path).
-- No auto-detection of "you're about to run out of context."
+### For Chrome, Edge, and Brave
+1. Download the latest release `.zip` from the [Releases](https://github.com/alhosseinjr/session-handoff/releases) page.
+2. Unzip the file.
+3. Open `chrome://extensions/` in your browser.
+4. Enable **Developer Mode** (top right).
+5. Click **Load unpacked** and select the unzipped folder containing `manifest.json` (the `dist/` folder if you built from source).
 
-## Install (Chrome / Edge / Brave — all free, no store account needed)
+## 💡 Usage
 
-1. Download/unzip this folder somewhere permanent (don't delete it after
-   install — Chrome loads the extension directly from these files).
-2. Go to `chrome://extensions` (or `edge://extensions`).
-3. Turn on **Developer mode** (top right toggle).
-4. Click **Load unpacked**.
-5. Select the `handoff-extension` folder (the one containing
-   `manifest.json`).
-6. Pin the extension (puzzle-piece icon → pin) so it's visible in the
-   toolbar.
+### Capturing a Session
+- **Option 1**: Click the floating capture button `[↗]` next to the chat input field on supported sites.
+- **Option 2**: Press `Ctrl+Shift+C` (or `Cmd+Shift+C` on Mac).
+- **Option 3**: Right-click anywhere on the page and select "Capture Session Context".
 
-## Use
+### Using the Side Panel
+The extension uses Chrome's native Side Panel API for a seamless experience. 
+- **View Snapshots**: Search and manage all your saved contexts.
+- **Edit Contexts**: Fine-tune the generated handoff brief before using it.
+- **Settings**: Configure your preferred AI summarizing provider (Groq recommended for speed/cost).
 
-1. Open a long conversation on claude.ai or chatgpt.com.
-2. Click the extension icon.
-3. Click **Capture current tab**.
-4. Review/edit the generated brief in the textarea.
-5. Click **Copy to clipboard**, open a new chat, paste it as your first
-   message.
-6. Optionally click **Save snapshot** first if you want to keep it in your
-   history for later.
+### Auto-Inject
+When you open a new chat on any supported site, a pill will appear asking if you want to continue your last session. Clicking "Yes" will stream the handoff brief safely into the chat input.
 
-If capture doesn't find anything (site redesign, or an unsupported site):
-use the right-click "Send selection to Session Handoff" on selected text,
-or the "Paste conversation manually" fallback in the popup.
+## 🏗️ Architecture
 
-## Known limitations
+```mermaid
+graph TD
+    subgraph Browser Context
+        CS[Content Scripts] --> |Extracts DOM| SA[Site Adapters]
+        SA --> |Fallback / GPT / Claude| CS
+        CS --> |Auto-Scrolls| DOM[Virtualized DOM]
+        CS --> |Sends Messages| SW[Service Worker]
+    end
 
-- Very long conversations that are virtualized (only the visible portion is
-  rendered in the DOM) may only capture what's currently on screen — scroll
-  up to load more before capturing.
-- Site DOM selectors (`content/content.js`) may need updating if
-  claude.ai/chatgpt.com change their markup. The generic fallback heuristic
-  should still produce something usable even if the specific selectors stop
-  matching.
-- The rule-based extraction is heuristic, not perfect — always skim the
-  generated brief before using it.
+    subgraph Extension Core
+        SW --> |Manages| Storage[(Local Storage)]
+        SW --> |Orchestrates| LLM[LLM Engine]
+        SW --> |Fallbacks to| TPL[Rule-Based Templater]
+        SP[Side Panel UI] <--> Storage
+    end
 
-## Folder structure
-
-```
-handoff-extension/
-├── manifest.json
-├── background/service-worker.js   # context menu for the selection fallback
-├── content/content.js             # site adapters + generic fallback extractor
-├── lib/
-│   ├── storage.js                 # chrome.storage.local snapshot CRUD
-│   └── templater.js               # rule-based handoff-brief builder
-└── popup/
-    ├── popup.html
-    ├── popup.css
-    └── popup.js
+    LLM --> |API Calls| ExtAI[Groq/OpenAI/Anthropic APIs]
 ```
 
-## Next steps (v2 ideas, once v1 has been used for real)
+## 🛠️ Development
 
-- Optional LLM-assisted mode using your own Anthropic/OpenAI API key,
-  called directly from the extension (still no relay server) — for a
-  noticeably better summary than the rule-based pass.
-- Chunked summarization for very long transcripts.
-- Auto-scroll to load the full conversation before capture.
-- In-page "Capture" button injected next to the chat input, so you don't
-  need to open the popup at all.
+This project is built with **TypeScript** and **Vite**.
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server (watches files and rebuilds)
+npm run dev
+
+# Build for production (outputs to /dist)
+npm run build
+
+# Run tests
+npm test
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Please ensure all tests pass (`npm test`) before submitting a PR.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

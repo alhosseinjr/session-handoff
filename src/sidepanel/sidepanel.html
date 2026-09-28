@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Session Handoff</title>
+  <link rel="stylesheet" href="./sidepanel.css" />
+</head>
+<body>
+  <div class="app-container">
+    <nav class="sidebar">
+      <div class="brand">
+        <img src="../../icons/icon32.png" alt="Logo" class="logo" />
+        <h1>Handoff</h1>
+      </div>
+      <div class="nav-links">
+        <button id="nav-capture" class="active">Current Session</button>
+        <button id="nav-snapshots">Snapshots</button>
+        <button id="nav-settings">Settings</button>
+      </div>
+    </nav>
+
+    <main class="content">
+      <!-- Capture View -->
+      <section id="view-capture" class="view active">
+        <header>
+          <h2>Capture Context</h2>
+          <button id="btn-capture" class="primary-btn">Capture Now</button>
+        </header>
+        
+        <div id="capture-status" class="status-panel hidden">
+          <div class="spinner"></div>
+          <p id="status-text">Analyzing page...</p>
+          <div class="progress-bar"><div id="progress-fill"></div></div>
+          <button id="btn-abort" class="text-btn">Cancel</button>
+        </div>
+
+        <div id="editor-container" class="hidden">
+          <div class="editor-toolbar">
+            <div class="title-with-badge">
+              <span id="snapshot-title" contenteditable="true">New Snapshot</span>
+              <span id="snapshot-mode-badge" class="badge badge-rule">⚡ Rule-Based</span>
+            </div>
+            <div class="actions">
+              <button id="btn-copy" class="icon-btn" title="Copy to Clipboard">📋 Copy</button>
+              <button id="btn-save" class="icon-btn" title="Save Changes">💾 Save</button>
+            </div>
+          </div>
+          <div id="capture-warning" class="capture-warning-banner hidden"></div>
+          <textarea id="brief-editor"></textarea>
+        </div>
+        
+        <div id="empty-state" class="empty-state">
+          <p>No active capture.</p>
+          <p class="subtitle">Click "Capture Now" or use Ctrl+Shift+C on any supported AI chat.</p>
+        </div>
+      </section>
+
+      <!-- Snapshots View -->
+      <section id="view-snapshots" class="view hidden">
+        <header>
+          <h2>Snapshots</h2>
+          <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search contexts..." />
+          </div>
+        </header>
+        <div id="snapshots-list" class="list-container">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Settings View -->
+      <section id="view-settings" class="view hidden">
+        <header>
+          <h2>Settings</h2>
+        </header>
+        <div class="settings-form">
+          <div class="setting-group">
+            <label>Mode</label>
+            <select id="sel-mode">
+              <option value="smart">Smart AI (Requires API Key)</option>
+              <option value="rule-based">Rule-Based (Local, Free)</option>
+            </select>
+          </div>
+
+          <div id="ai-settings" class="hidden">
+            <div class="setting-group">
+              <label>AI Provider</label>
+              <select id="sel-provider">
+                <option value="groq">Groq</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="ollama">Local Ollama</option>
+              </select>
+            </div>
+            <div class="setting-group">
+              <label>API Key</label>
+              <input type="password" id="input-apikey" placeholder="Enter API Key" />
+              <div class="btn-actions-row">
+                <button id="btn-save-key" class="secondary-btn">Save Key</button>
+                <button id="btn-test-key" class="secondary-btn">⚡ Test Connection</button>
+              </div>
+              <div id="test-key-result" class="test-result hidden"></div>
+            </div>
+          </div>
+
+          <div class="setting-group inline">
+            <div>
+              <label>Auto-Inject Prompt Pill</label>
+              <p class="desc">Show a prompt pill in new chats.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chk-autoinject" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-group inline">
+            <div>
+              <label>In-Page Capture Button</label>
+              <p class="desc">Show floating [↗] button.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chk-inpage" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./sidepanel.ts"></script>
+</body>
+</html>
