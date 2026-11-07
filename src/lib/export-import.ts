@@ -6,6 +6,23 @@ import { getSnapshots, getProjects, getSettings, saveSnapshot, saveProject } fro
 import { generateId } from './storage';
 
 /**
+ * UTF-8 safe base64 encoding (replaces the deprecated unescape/escape pattern).
+ */
+function encodeUtf8Base64(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function decodeUtf8Base64(str: string): string {
+  const binary = atob(str);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+/**
  * Export a single snapshot in the specified format.
  */
 export function exportSnapshot(snapshot: Snapshot, format: ExportFormat): string {
@@ -154,7 +171,7 @@ export function generateShareLink(snapshot: Snapshot): string {
     t: snapshot.createdAt,
     mc: snapshot.messageCount,
   };
-  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(minimalData))));
+  const encoded = encodeUtf8Base64(JSON.stringify(minimalData));
   return `https://session-handoff.dev/share#${encoded}`;
 }
 
@@ -167,7 +184,7 @@ export function parseShareLink(
   try {
     const hash = url.split('#')[1];
     if (!hash) return null;
-    const decoded = decodeURIComponent(escape(atob(hash)));
+    const decoded = decodeUtf8Base64(hash);
     const data = JSON.parse(decoded);
     return {
       name: data.n,

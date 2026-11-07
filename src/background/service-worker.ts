@@ -116,7 +116,7 @@ async function executeCapture(tabId: number) {
     }
 
     // 3. Save snapshot
-    const snapshotName = `${data.title} (${new Date().toLocaleDateString()})`;
+    const snapshotName = `${data.title} (${new Date().toLocaleString()})`;
     await saveSnapshot({
       id: generateId(),
       name: snapshotName,
@@ -138,20 +138,28 @@ async function executeCapture(tabId: number) {
     });
 
     // 4. Notify side panel to refresh
-    chrome.runtime.sendMessage({
-      type: 'CAPTURE_RESULT',
-      payload: {
-        success: true,
-        mode,
-        warning: aiError ? `Smart AI failed (${aiError}). Showing fallback rule-based brief.` : undefined,
-      },
-    });
+    chrome.runtime
+      .sendMessage({
+        type: 'CAPTURE_RESULT',
+        payload: {
+          success: true,
+          mode,
+          warning: aiError ? `Smart AI failed (${aiError}). Showing fallback rule-based brief.` : undefined,
+        },
+      })
+      .catch(() => {
+        // Side panel may be closed — nothing to notify.
+      });
 
   } catch (error) {
     console.error('Capture failed:', error);
-    chrome.runtime.sendMessage({ 
-      type: 'CAPTURE_RESULT', 
-      payload: { success: false, error: (error as Error).message } 
-    });
+    chrome.runtime
+      .sendMessage({
+        type: 'CAPTURE_RESULT',
+        payload: { success: false, error: (error as Error).message },
+      })
+      .catch(() => {
+        // Side panel may be closed — nothing to notify.
+      });
   }
 }

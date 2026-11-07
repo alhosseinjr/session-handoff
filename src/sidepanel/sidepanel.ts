@@ -85,20 +85,29 @@ els.navSettings.addEventListener('click', () => switchView('settings'));
 els.btnCapture.addEventListener('click', async () => {
   els.btnCapture.disabled = true;
   els.btnCapture.textContent = 'Capturing...';
-  
+
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (tab?.id) {
-      // Trigger background script capture sequence via messaging or command
-      // Wait, we can just send a message to background script to do it,
-      // but background script handles the tab logic. Let's just execute capture directly or via background.
-      chrome.runtime.sendMessage({ type: 'EXECUTE_CAPTURE', tabId: tab.id });
+    if (!tab?.id) {
+      alert('No active tab found. Please open a chat page and try again.');
+      els.btnCapture.disabled = false;
+      els.btnCapture.textContent = 'Capture Now';
+      return;
     }
+    // Trigger background script capture sequence.
+    chrome.runtime.sendMessage({ type: 'EXECUTE_CAPTURE', tabId: tab.id }).catch(() => {});
   } catch (err) {
     console.error(err);
     alert('Capture failed. Please try again on a supported chat page.');
     els.btnCapture.disabled = false;
     els.btnCapture.textContent = 'Capture Now';
+  }
+});
+
+// Live progress while the content script scrolls through the conversation
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'SCROLL_PROGRESS' && els.btnCapture.disabled) {
+    els.btnCapture.textContent = `Capturing... ${msg.payload.pct}%`;
   }
 });
 
@@ -351,7 +360,8 @@ els.btnSaveKey.addEventListener('click', async () => {
     setTimeout(() => {
       els.btnSaveKey.textContent = 'Update Key';
     }, 2000);
-  } catch (err) {
+  } catch (error) {
+    console.error('Failed to encrypt/save key:', error);
     alert('Failed to encrypt/save key');
   }
 });

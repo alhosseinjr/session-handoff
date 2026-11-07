@@ -510,6 +510,7 @@ export async function generateSmartHandoff(
   const chunkSummaries: ChunkSummary[] = [];
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+  let chunkStartIndex = 0;
 
   for (let i = 0; i < chunks.length; i++) {
     onProgress?.(`Summarizing chunk ${i + 1}/${chunks.length}...`);
@@ -531,8 +532,9 @@ export async function generateSmartHandoff(
     chunkSummaries.push({
       chunkIndex: i,
       summary: response.content,
-      messageRange: [0, chunks[i].length - 1],
+      messageRange: [chunkStartIndex, chunkStartIndex + chunks[i].length - 1],
     });
+    chunkStartIndex += chunks[i].length;
 
     totalInputTokens += response.inputTokens;
     totalOutputTokens += response.outputTokens;
@@ -581,7 +583,10 @@ export async function generateSmartHandoffWithFallback(
     try {
       const config = PROVIDER_CONFIGS[provider];
       onProgress?.(`Trying ${config.displayName}...`);
-      const result = await generateSmartHandoff(messages, onProgress, provider, config.defaultModel);
+      // Prefer the user's configured model when the provider supports it,
+      // otherwise fall back to the provider's default model.
+      const userModel = settings.llmModel && config.availableModels.includes(settings.llmModel) ? settings.llmModel : undefined;
+      const result = await generateSmartHandoff(messages, onProgress, provider, userModel);
       return result;
     } catch (err) {
       onProgress?.(`${PROVIDER_CONFIGS[provider].displayName} failed: ${(err as Error).message}. Trying next...`);

@@ -1,6 +1,6 @@
 {
   "name": "session-handoff",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The definitive AI chat session handoff tool for Chrome, Firefox, and Edge. Capture, summarize, organize, and continue your AI conversations seamlessly.",
   "type": "module",
   "scripts": {
@@ -27,9 +27,15 @@
   "author": "alhosseinjr",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.0.308",
     "@types/node": "^22.13.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "happy-dom": "^21.0.4",
+    "prettier": "^3.9.10",
     "typescript": "^5.7.3",
+    "typescript-eslint": "^8.72.1",
     "vite": "^6.2.0",
     "vite-plugin-static-copy": "^2.3.0",
     "vitest": "^3.0.7"

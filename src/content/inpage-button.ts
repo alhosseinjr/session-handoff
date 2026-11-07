@@ -54,7 +54,9 @@ function tryInjectButton(): void {
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' });
+    chrome.runtime
+      .sendMessage({ type: 'OPEN_SIDEPANEL' })
+      .catch((err) => console.debug('OPEN_SIDEPANEL failed:', err));
   });
 
   // Insert near the input element

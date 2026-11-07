@@ -46,10 +46,14 @@ function handleMessage(
       scrollCapture(adapter, {
         abortSignal: abortController.signal,
         onProgress: (pct, count) => {
-          chrome.runtime.sendMessage({
-            type: 'SCROLL_PROGRESS',
-            payload: { pct, count },
-          });
+          chrome.runtime
+            .sendMessage({
+              type: 'SCROLL_PROGRESS',
+              payload: { pct, count },
+            })
+            .catch(() => {
+              // Side panel may not be listening yet — safe to ignore.
+            });
         },
       })
         .then((messages) => {
