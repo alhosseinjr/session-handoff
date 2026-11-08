@@ -27,6 +27,7 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     availableModels: [
       'openai/gpt-oss-120b',
       'openai/gpt-oss-20b',
+      'qwen/qwen3.6-27b',
     ],
     maxTokens: 65_536,
     costPer1kInput: 0.00015,
@@ -37,33 +38,33 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     displayName: 'OpenAI',
     apiKeyRequired: true,
     apiUrl: 'https://api.openai.com/v1/chat/completions',
-    defaultModel: 'gpt-4o-mini',
-    availableModels: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+    defaultModel: 'gpt-5.6-luna',
+    availableModels: ['gpt-5.6-luna', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4o-mini'],
     maxTokens: 16_384,
-    costPer1kInput: 0.00015,
-    costPer1kOutput: 0.0006,
+    costPer1kInput: 0.0002,
+    costPer1kOutput: 0.0012,
   },
   anthropic: {
     provider: 'anthropic',
     displayName: 'Anthropic',
     apiKeyRequired: true,
     apiUrl: 'https://api.anthropic.com/v1/messages',
-    defaultModel: 'claude-3-5-sonnet-20241022',
-    availableModels: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-haiku-20240307'],
+    defaultModel: 'claude-haiku-5-5',
+    availableModels: ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-haiku-4-5'],
     maxTokens: 8_192,
-    costPer1kInput: 0.003,
-    costPer1kOutput: 0.015,
+    costPer1kInput: 0.001,
+    costPer1kOutput: 0.005,
   },
   gemini: {
     provider: 'gemini',
     displayName: 'Google Gemini',
     apiKeyRequired: true,
     apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
-    defaultModel: 'gemini-2.0-flash',
-    availableModels: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+    defaultModel: 'gemini-3.8-flash',
+    availableModels: ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'],
     maxTokens: 8_192,
-    costPer1kInput: 0.000075,
-    costPer1kOutput: 0.0003,
+    costPer1kInput: 0.00075,
+    costPer1kOutput: 0.00375,
   },
   ollama: {
     provider: 'ollama',
@@ -221,17 +222,39 @@ async function callLLM(request: LLMRequest): Promise<LLMResponse> {
   // Sanitize API key to prevent "String contains non ISO-8859-1 code point" fetch header errors
   request.apiKey = request.apiKey?.replace(/[^\x20-\x7E]/g, '') || '';
 
-  if (request.provider === 'anthropic') {
-    return callAnthropic(request, config);
+  try {
+    if (request.provider === 'anthropic') {
+      return await callAnthropic(request, config);
+    }
+    if (request.provider === 'gemini') {
+      return await callGemini(request, config);
+    }
+    if (request.provider === 'ollama') {
+      return await callOllama(request, config);
+    }
+    // OpenAI-compatible (OpenAI, Groq)
+    return await callOpenAICompatible(request, config);
+  } catch (err) {
+    // fetch() raises a bare TypeError for network/DNS/CORS failures — make it
+    // actionable instead of "Failed to fetch".
+    if (err instanceof TypeError) {
+      let host = config.apiUrl;
+      try {
+        host = new URL(config.apiUrl).host;
+      } catch {
+        /* keep full url */
+      }
+      throw new TypeError(
+        `Network error reaching ${host} — check your internet connection` +
+          (request.provider === 'ollama'
+            ? ', and that Ollama is running on localhost:11434'
+            : '') +
+          '.',
+        { cause: err }
+      );
+    }
+    throw err;
   }
-  if (request.provider === 'gemini') {
-    return callGemini(request, config);
-  }
-  if (request.provider === 'ollama') {
-    return callOllama(request, config);
-  }
-  // OpenAI-compatible (OpenAI, Groq)
-  return callOpenAICompatible(request, config);
 }
 
 async function callOpenAICompatible(
@@ -581,23 +604,53 @@ export async function generateSmartHandoffWithFallback(
   }
   const settings = await getSettings();
   const providers = [settings.llmProvider, ...settings.fallbackOrder.filter((p) => p !== settings.llmProvider)];
+  const failures: string[] = [];
+
+  const attempt = async (provider: LLMProvider, overrideModel?: string) => {
+    const config = PROVIDER_CONFIGS[provider];
+    // Prefer the user's configured model when the provider supports it,
+    // otherwise fall back to the provider's default model.
+    const userModel =
+      overrideModel ??
+      (settings.llmModel && config.availableModels.includes(settings.llmModel)
+        ? settings.llmModel
+        : undefined);
+    const result = await generateSmartHandoff(messages, onProgress, provider, userModel);
+    return result;
+  };
 
   for (const provider of providers) {
+    const config = PROVIDER_CONFIGS[provider];
     try {
-      const config = PROVIDER_CONFIGS[provider];
       onProgress?.(`Trying ${config.displayName}...`);
-      // Prefer the user's configured model when the provider supports it,
-      // otherwise fall back to the provider's default model.
-      const userModel = settings.llmModel && config.availableModels.includes(settings.llmModel) ? settings.llmModel : undefined;
-      const result = await generateSmartHandoff(messages, onProgress, provider, userModel);
-      return result;
+      return await attempt(provider);
     } catch (err) {
-      onProgress?.(`${PROVIDER_CONFIGS[provider].displayName} failed: ${(err as Error).message}. Trying next...`);
-      continue;
+      const msg = ((err as Error).message || String(err)).trim();
+      console.error(`[SessionHandoff] ${config.displayName} failed:`, err);
+      failures.push(`${config.displayName}: ${msg}`);
+      onProgress?.(`${config.displayName} failed: ${msg}. Trying next...`);
+
+      // A saved model ID can outlive the provider's catalog (Groq shut down
+      // the Llama models in Aug 2026). Retry the same provider once with its
+      // default model before moving on.
+      if (/model/i.test(msg) && !msg.includes(config.defaultModel)) {
+        try {
+          onProgress?.(`Retrying ${config.displayName} with default model ${config.defaultModel}...`);
+          return await attempt(provider, config.defaultModel);
+        } catch (err2) {
+          const msg2 = ((err2 as Error).message || String(err2)).trim();
+          console.error(`[SessionHandoff] ${config.displayName} retry failed:`, err2);
+          failures.push(`${config.displayName} (retry with ${config.defaultModel}): ${msg2}`);
+        }
+      }
     }
   }
 
-  throw new Error('All LLM providers failed. Please check your API keys and try again.');
+  throw new Error(
+    'All LLM providers failed:\n' +
+      failures.map((f) => `• ${f}`).join('\n') +
+      '\n\nCheck your API keys in the extension Options page, or try the rule-based brief.'
+  );
 }
 
 /**
