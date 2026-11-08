@@ -86,7 +86,10 @@ async function executeCapture(tabId: number) {
     }
 
     const data = response as CaptureResult;
-    
+    if (!Array.isArray(data.messages) || data.messages.length === 0) {
+      throw new Error('Capture returned no messages — nothing was saved.');
+    }
+
     // 2. Generate Brief
     let brief = '';
     let mode: 'rule-based' | 'ai-generated' = 'rule-based';

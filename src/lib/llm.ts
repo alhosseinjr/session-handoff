@@ -576,6 +576,9 @@ export async function generateSmartHandoffWithFallback(
   messages: ExtractedMessage[],
   onProgress?: (status: string) => void
 ): Promise<{ brief: string; stats: LLMResponse }> {
+  if (!messages || messages.length === 0) {
+    throw new Error('No conversation content to summarize — transcript was empty.');
+  }
   const settings = await getSettings();
   const providers = [settings.llmProvider, ...settings.fallbackOrder.filter((p) => p !== settings.llmProvider)];
 

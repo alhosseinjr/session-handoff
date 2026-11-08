@@ -13,6 +13,26 @@ import './inpage.css';
 let abortController: AbortController | null = null;
 let contextInterval: ReturnType<typeof setInterval> | null = null;
 
+/** Build a helpful error when extraction found nothing, including selector diagnostics. */
+function emptyCaptureError(adapter: ReturnType<typeof getAdapter>): string {
+  const counts = adapter.getDiagnostics?.();
+  const details = counts
+    ? Object.entries(counts)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(', ')
+    : '';
+  return [
+    'No conversation could be extracted from this page.',
+    details ? `Diagnostics — ${details}.` : '',
+    'Open an existing chat that already has messages in this tab (a brand-new empty chat has nothing to capture), then try again.',
+    counts && counts.textAreaChars === 0
+      ? 'Hint: the page appears to be on the home/landing view, not inside a conversation.'
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 function handleMessage(
   request: ExtensionMessage,
   _sender: chrome.runtime.MessageSender,
@@ -24,6 +44,10 @@ function handleMessage(
     case 'CAPTURE_SESSION': {
       try {
         const messages = adapter.extractMessages();
+        if (messages.length === 0) {
+          sendResponse({ ok: false, error: emptyCaptureError(adapter) });
+          return false;
+        }
         const tokens = estimateMessagesTokens(messages);
         sendResponse({
           ok: true,
@@ -57,6 +81,10 @@ function handleMessage(
         },
       })
         .then((messages) => {
+          if (messages.length === 0) {
+            sendResponse({ ok: false, error: emptyCaptureError(adapter) });
+            return;
+          }
           const tokens = estimateMessagesTokens(messages);
           sendResponse({
             ok: true,
@@ -171,3 +199,20 @@ function checkAutoInject() {
 
 // Start
 initContentScript();
+
+// Page-console helper for debugging capture issues:
+//   SHD.diagnose()  → counts for every extraction strategy + adapter used
+const SHD = {
+  diagnose: () => {
+    const adapter = getAdapter();
+    return {
+      host: location.hostname,
+      site: adapter.site,
+      adapter: adapter.displayName,
+      messageCount: adapter.getMessageCount(),
+      ...adapter.getDiagnostics?.(),
+    };
+  },
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).SHD = SHD;

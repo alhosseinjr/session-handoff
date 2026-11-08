@@ -27,6 +27,15 @@ interface TemplaterMeta {
  * Build a rule-based handoff brief from extracted messages.
  */
 export function buildRuleBasedBrief(messages: ExtractedMessage[], meta: TemplaterMeta): string {
+  if (messages.length === 0) {
+    return [
+      '# Session Handoff Brief',
+      '',
+      '> ⚠️ **Empty capture** — no messages were extracted from this page, so no brief could be generated.',
+      ...(meta.url ? [`_Page: ${meta.url}_`] : []),
+    ].join('\n');
+  }
+
   const userMsgs = messages.filter((m) => m.role === 'user');
   const assistantMsgs = messages.filter((m) => m.role === 'assistant');
 

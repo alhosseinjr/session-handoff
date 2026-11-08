@@ -99,4 +99,14 @@ export class ChatGPTAdapter extends BaseAdapter {
   getScrollContainer(): HTMLElement | null {
     return document.querySelector<HTMLElement>(this.selectors.scrollContainer);
   }
+
+  getDiagnostics(): Record<string, number> {
+    return {
+      roleNodes: document.querySelectorAll(this.selectors.primary).length,
+      articles: document.querySelectorAll('article').length,
+      turnContainers: document.querySelectorAll('[data-testid^="conversation-turn"]').length,
+      scrollContainers: document.querySelectorAll(this.selectors.scrollContainer).length,
+      textAreaChars: (document.querySelector('main')?.textContent ?? '').length,
+    };
+  }
 }

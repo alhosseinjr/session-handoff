@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Session Handoff",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Capture the state of a long AI chat session and generate a handoff prompt to continue it flawlessly.",
   "permissions": [
     "storage",
@@ -54,8 +54,12 @@
         "https://copilot.microsoft.com/*",
         "https://console.anthropic.com/*"
       ],
-      "js": ["content/content.js"],
-      "css": ["content/inpage.css"],
+      "js": [
+        "content/content.js"
+      ],
+      "css": [
+        "content/inpage.css"
+      ],
       "run_at": "document_idle"
     }
   ],

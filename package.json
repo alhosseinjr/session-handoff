@@ -1,6 +1,6 @@
 {
   "name": "session-handoff",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "The definitive AI chat session handoff tool for Chrome, Firefox, and Edge. Capture, summarize, organize, and continue your AI conversations seamlessly.",
   "type": "module",
   "scripts": {

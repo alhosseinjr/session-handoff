@@ -54,6 +54,8 @@ export interface SiteAdapter {
   isVirtualized(): boolean;
   getScrollContainer(): HTMLElement | null;
   getMessageCount(): number;
+  /** Optional per-strategy selector counts to aid empty-capture diagnostics. */
+  getDiagnostics?(): Record<string, number>;
 }
 
 // ─── LLM Providers ─────────────────────────────────────────────────────────

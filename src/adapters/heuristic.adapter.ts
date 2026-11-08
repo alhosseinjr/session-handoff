@@ -74,4 +74,15 @@ export class HeuristicAdapter extends BaseAdapter {
       document.querySelector<HTMLElement>('textarea')
     );
   }
+
+  getDiagnostics(): Record<string, number> {
+    return {
+      roleElements: document.querySelectorAll(
+        '[data-role], [data-message-role], [data-author], [data-sender]'
+      ).length,
+      contentEditables: document.querySelectorAll('[contenteditable="true"]').length,
+      iframes: document.querySelectorAll('iframe').length,
+      bodyTextChars: (document.body?.innerText ?? '').length,
+    };
+  }
 }
